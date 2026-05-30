@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { pool, sql } = require('./db');
+const { responderConsulta } = require('./aiAgent');
 require('dotenv').config();
 
 const app = express();
@@ -164,6 +165,24 @@ app.get('/api/actividades/:id_seccion', verifyToken, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Estudiantes inscritos (asignaciones activas) de una seccion, con su id_asignacion.
+// Necesario para registrar notas/asistencia, que operan por id_asignacion.
+app.get('/api/asignaciones/:id_seccion', verifyToken, async (req, res) => {
+  try {
+    const r = await pool.request()
+      .input('id_seccion', sql.Int, req.params.id_seccion)
+      .query(`
+        SELECT a.id_asignacion, a.estado, e.id_estudiante, e.carnet,
+               CONCAT(u.nombre, ' ', u.apellido) AS nombre_completo
+        FROM tbAsignacion a
+        INNER JOIN tbEstudiante e ON e.id_estudiante = a.id_estudiante
+        INNER JOIN tbUsuario u ON u.id_usuario = e.id_usuario
+        WHERE a.id_seccion = @id_seccion AND a.estado = 'Activa'
+        ORDER BY u.apellido, u.nombre`);
+    res.json(r.recordset);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ============================================================
 // OPERACIONES (via stored procedures)
 // ============================================================
@@ -269,6 +288,14 @@ app.get('/api/auditoria', verifyToken, requireRole('Administrador'), async (req,
 app.post('/api/ai/consulta', verifyToken, async (req, res) => {
   try {
     const { pregunta, id_estudiante } = req.body;
+
+    // Si hay GROQ_API_KEY, usar el agente de IA con herramientas ancladas a la BD.
+    if (process.env.GROQ_API_KEY) {
+      const { respuesta } = await responderConsulta({ pregunta, id_estudiante, usuario: req.user });
+      return res.json({ respuesta, timestamp: new Date() });
+    }
+
+    // Fallback sin LLM: respuestas por reglas (palabras clave).
     const q = (pregunta || '').toLowerCase();
     let respuesta = 'No entendí tu pregunta. Pregunta sobre: promedio, riesgo, asistencia o alertas.';
 
