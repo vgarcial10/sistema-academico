@@ -13,6 +13,8 @@ import Perfil from './pages/Perfil';
 import Auditoria from './pages/Auditoria';
 import RegistroUsuario from './pages/RegistroUsuario';
 import Asistente from './pages/Asistente';
+import Inscripciones from './pages/Inscripciones';
+import NuevoCurso from './pages/NuevoCurso';
 import Placeholder from './pages/Placeholder';
 
 export default function App() {
@@ -46,10 +48,26 @@ export default function App() {
           }
         />
         <Route
+          path="/cursos/nuevo"
+          element={
+            <ProtectedRoute roles={['Administrador']}>
+              <NuevoCurso />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/secciones"
           element={
             <ProtectedRoute roles={['Administrador', 'Docente']}>
               <Secciones />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inscripciones"
+          element={
+            <ProtectedRoute roles={['Administrador', 'Docente']}>
+              <Inscripciones />
             </ProtectedRoute>
           }
         />

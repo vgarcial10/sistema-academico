@@ -12,7 +12,7 @@ import { exportarExcel, exportarPDF } from '../utils/exportar';
 
 // Pagina generica de listado: recibe titulo, columnas y una funcion que trae los datos.
 // columns: [{ key, label, render?(value, row) }]
-export default function DataTablePage({ titulo, columns, fetchFn, rowKey }) {
+export default function DataTablePage({ titulo, columns, fetchFn, rowKey, headerActions = null }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,6 +47,7 @@ export default function DataTablePage({ titulo, columns, fetchFn, rowKey }) {
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           {titulo}
         </Typography>
+        {headerActions}
         <TextField
           size="small"
           placeholder="Buscar..."

@@ -6,6 +6,12 @@ export async function getRoles() {
   return data;
 }
 
+// GET /api/carreras
+export async function getCarreras() {
+  const { data } = await api.get('/carreras');
+  return data;
+}
+
 // GET /api/estudiantes
 export async function getEstudiantes() {
   const { data } = await api.get('/estudiantes');

@@ -9,6 +9,8 @@ import HistoryIcon from '@mui/icons-material/History';
 import PersonIcon from '@mui/icons-material/Person';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import PostAddIcon from '@mui/icons-material/PostAdd';
 
 // Items de navegacion. `roles` vacio = visible para cualquier sesion.
 // Estas rutas (salvo Dashboard) son placeholders de la Fase 1.
@@ -16,7 +18,9 @@ export const menuItems = [
   { label: 'Dashboard', path: '/', icon: DashboardIcon, roles: [] },
   { label: 'Estudiantes', path: '/estudiantes', icon: PeopleIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Cursos', path: '/cursos', icon: MenuBookIcon, roles: ['Administrador', 'Docente'] },
+  { label: 'Nuevo Curso', path: '/cursos/nuevo', icon: PostAddIcon, roles: ['Administrador'] },
   { label: 'Secciones', path: '/secciones', icon: ClassIcon, roles: ['Administrador', 'Docente'] },
+  { label: 'Inscripciones', path: '/inscripciones', icon: HowToRegIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Registro de Notas', path: '/notas', icon: GradeIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Asistencia', path: '/asistencia', icon: FactCheckIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Reportes', path: '/reportes', icon: AssessmentIcon, roles: ['Administrador', 'Docente', 'Reportes'] },

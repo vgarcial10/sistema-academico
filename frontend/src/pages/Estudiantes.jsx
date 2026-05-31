@@ -1,4 +1,5 @@
-import { Chip } from '@mui/material';
+import { Button, Chip } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import DataTablePage from '../components/DataTablePage';
 import { getEstudiantes } from '../api/catalogos';
 
@@ -23,5 +24,18 @@ const columns = [
 ];
 
 export default function Estudiantes() {
-  return <DataTablePage titulo="Estudiantes" columns={columns} fetchFn={getEstudiantes} rowKey="id_estudiante" />;
+  const navigate = useNavigate();
+  return (
+    <DataTablePage
+      titulo="Estudiantes"
+      columns={columns}
+      fetchFn={getEstudiantes}
+      rowKey="id_estudiante"
+      headerActions={(
+        <Button variant="contained" size="small" onClick={() => navigate('/inscripciones')}>
+          Inscribir estudiante
+        </Button>
+      )}
+    />
+  );
 }

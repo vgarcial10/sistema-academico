@@ -1,3 +1,5 @@
+import { Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import DataTablePage from '../components/DataTablePage';
 import { getCursos } from '../api/catalogos';
 
@@ -10,5 +12,18 @@ const columns = [
 ];
 
 export default function Cursos() {
-  return <DataTablePage titulo="Cursos" columns={columns} fetchFn={getCursos} rowKey="id_curso" />;
+  const navigate = useNavigate();
+  return (
+    <DataTablePage
+      titulo="Cursos"
+      columns={columns}
+      fetchFn={getCursos}
+      rowKey="id_curso"
+      headerActions={(
+        <Button variant="contained" size="small" onClick={() => navigate('/cursos/nuevo')}>
+          Nuevo curso
+        </Button>
+      )}
+    />
+  );
 }

@@ -6,9 +6,7 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import { useAuth } from '../context/AuthContext';
-import { getEstudiantes } from '../api/catalogos';
-import { getPerfil } from '../api/perfil';
+import { getMiEstudiante, getPerfil } from '../api/perfil';
 import { getErrorMessage } from '../api/auth';
 import ChatIA from '../components/ChatIA';
 
@@ -24,31 +22,24 @@ function Dato({ label, value }) {
 }
 
 export default function Perfil() {
-  const { usuario } = useAuth();
   const [idEstudiante, setIdEstudiante] = useState(null);
   const [perfil, setPerfil] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Identificar al estudiante logueado emparejando por nombre_completo.
+  // Obtiene el id_estudiante del usuario autenticado desde backend.
   useEffect(() => {
     setLoading(true);
     setError('');
-    getEstudiantes()
-      .then((lista) => {
-        const match = lista.find((e) => e.nombre_completo === usuario?.nombre_completo) || null;
-        if (!match) {
-          setError('No se pudo identificar tu registro de estudiante.');
-          setLoading(false);
-          return null;
-        }
-        setIdEstudiante(match.id_estudiante);
-        return getPerfil(match.id_estudiante);
+    getMiEstudiante()
+      .then((me) => {
+        setIdEstudiante(me.id_estudiante);
+        return getPerfil(me.id_estudiante);
       })
       .then((data) => { if (data) setPerfil(data); })
       .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
-  }, [usuario]);
+  }, []);
 
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>;
