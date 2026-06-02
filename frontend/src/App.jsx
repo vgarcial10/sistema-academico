@@ -15,6 +15,8 @@ import RegistroUsuario from './pages/RegistroUsuario';
 import Asistente from './pages/Asistente';
 import Inscripciones from './pages/Inscripciones';
 import NuevoCurso from './pages/NuevoCurso';
+import BackupBD from './pages/BackupBD';
+import MonitoreoConsultas from './pages/MonitoreoConsultas';
 import Placeholder from './pages/Placeholder';
 
 export default function App() {
@@ -116,6 +118,22 @@ export default function App() {
           element={
             <ProtectedRoute roles={['Administrador']}>
               <Auditoria />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/backup"
+          element={
+            <ProtectedRoute roles={['Administrador']}>
+              <BackupBD />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/monitoreo-consultas"
+          element={
+            <ProtectedRoute roles={['Administrador']}>
+              <MonitoreoConsultas />
             </ProtectedRoute>
           }
         />

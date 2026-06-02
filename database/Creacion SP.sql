@@ -755,3 +755,74 @@ BEGIN
     WHERE u.id_usuario = @id_usuario;
 END;
 GO
+
+-- ============================================================
+-- GENERAR BACKUP DE BASE DE DATOS + MONITOREO DE TIEMPOS
+-- ============================================================
+CREATE OR ALTER PROCEDURE sp_GenerarBackup
+    @ruta_backup  VARCHAR(400) = NULL,  -- opcional. si viene null, se construye ruta por defecto.
+    @id_usuario_op INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @id_monitoreo INT;
+    DECLARE @inicio DATETIME = GETDATE();
+    DECLARE @db SYSNAME = DB_NAME();
+    DECLARE @ruta_final VARCHAR(400);
+    DECLARE @sql NVARCHAR(MAX);
+    DECLARE @fecha_token VARCHAR(20) = REPLACE(REPLACE(CONVERT(VARCHAR(19), @inicio, 120), '-', ''), ':', '');
+    -- @fecha_token queda tipo: 20260531 010203 -> quitamos espacio:
+    SET @fecha_token = REPLACE(@fecha_token, ' ', '_');
+
+    SET @ruta_final = NULLIF(LTRIM(RTRIM(@ruta_backup)), '');
+    IF @ruta_final IS NULL
+        SET @ruta_final = CONCAT('/var/opt/mssql/backups/', @db, '_', @fecha_token, '.bak');
+
+    INSERT INTO tbMonitoreoTiempos (proceso, fecha_inicio, estado, detalle, ruta_backup, id_usuario)
+    VALUES ('BACKUP_DB', @inicio, 'INICIADO', 'Inicio de respaldo de base de datos', @ruta_final, @id_usuario_op);
+    SET @id_monitoreo = SCOPE_IDENTITY();
+
+    BEGIN TRY
+        SET @sql = N'BACKUP DATABASE [' + @db + N'] TO DISK = N''' + REPLACE(@ruta_final, '''', '''''') + N''' WITH INIT, COMPRESSION, STATS = 10;';
+        EXEC (@sql);
+
+        UPDATE tbMonitoreoTiempos
+        SET fecha_fin = GETDATE(),
+            duracion_ms = DATEDIFF(MILLISECOND, @inicio, GETDATE()),
+            estado = 'EXITOSO',
+            detalle = 'Backup completado correctamente'
+        WHERE id_monitoreo = @id_monitoreo;
+
+        INSERT INTO tbBitacoraAuditoria (id_usuario, accion, tabla_afectada, id_registro_afectado, datos_nuevos)
+        VALUES (
+            @id_usuario_op,
+            'INSERT',
+            'MONITOREO_BACKUP',
+            @id_monitoreo,
+            CONCAT('{"ruta_backup":"', @ruta_final, '","estado":"EXITOSO"}')
+        );
+
+        SELECT 1 AS exito, 'Backup generado correctamente' AS mensaje, @ruta_final AS ruta_backup, @id_monitoreo AS id_monitoreo;
+    END TRY
+    BEGIN CATCH
+        UPDATE tbMonitoreoTiempos
+        SET fecha_fin = GETDATE(),
+            duracion_ms = DATEDIFF(MILLISECOND, @inicio, GETDATE()),
+            estado = 'ERROR',
+            detalle = LEFT(ERROR_MESSAGE(), 500)
+        WHERE id_monitoreo = @id_monitoreo;
+
+        INSERT INTO tbBitacoraAuditoria (id_usuario, accion, tabla_afectada, id_registro_afectado, datos_nuevos)
+        VALUES (
+            @id_usuario_op,
+            'ERROR',
+            'MONITOREO_BACKUP',
+            @id_monitoreo,
+            CONCAT('{"ruta_backup":"', @ruta_final, '","error":"', LEFT(REPLACE(ERROR_MESSAGE(), '"', ''''), 400), '"}')
+        );
+
+        SELECT 0 AS exito, ERROR_MESSAGE() AS mensaje, @ruta_final AS ruta_backup, @id_monitoreo AS id_monitoreo;
+    END CATCH;
+END;
+GO

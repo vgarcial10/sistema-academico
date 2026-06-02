@@ -256,3 +256,43 @@ CREATE TABLE tbBitacoraAuditoria (
     CONSTRAINT FK_BITACORA_USUARIO FOREIGN KEY (id_usuario)
         REFERENCES tbUsuario (id_usuario)
 );
+
+-- ============================================================
+-- MONITOREO DE TIEMPOS (operaciones administrativas)
+-- ============================================================
+CREATE TABLE tbMonitoreoTiempos (
+    id_monitoreo    INT           NOT NULL IDENTITY(1,1),
+    proceso         VARCHAR(100)  NOT NULL,
+    fecha_inicio    DATETIME      NOT NULL,
+    fecha_fin       DATETIME      NULL,
+    duracion_ms     INT           NULL,
+    estado          VARCHAR(20)   NOT NULL DEFAULT 'INICIADO'
+                    CHECK (estado IN ('INICIADO', 'EXITOSO', 'ERROR')),
+    detalle         VARCHAR(500)  NULL,
+    ruta_backup     VARCHAR(400)  NULL,
+    id_usuario      INT           NULL,
+    fecha_creacion  DATETIME      NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_MONITOREO_TIEMPOS PRIMARY KEY (id_monitoreo),
+    CONSTRAINT FK_MONITOREO_USUARIO FOREIGN KEY (id_usuario)
+        REFERENCES tbUsuario (id_usuario)
+);
+
+-- ============================================================
+-- MONITOREO DE CONSULTAS (rendimiento SQL)
+-- ============================================================
+CREATE TABLE tbMonitoreoConsulta (
+    id_monitoreo       INT            NOT NULL IDENTITY(1,1),
+    tipo_operacion     VARCHAR(20)    NOT NULL,   -- QUERY | EXECUTE
+    nombre_consulta    VARCHAR(200)   NOT NULL,   -- etiqueta/SP
+    resumen_consulta   VARCHAR(500)   NULL,       -- SQL truncado o nombre SP
+    fecha_inicio       DATETIME       NOT NULL,
+    fecha_fin          DATETIME       NOT NULL,
+    duracion_ms        INT            NOT NULL,
+    exito              BIT            NOT NULL,
+    mensaje_error      VARCHAR(500)   NULL,
+    fecha_registro     DATETIME       NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_MONITOREO_CONSULTA PRIMARY KEY (id_monitoreo),
+    CONSTRAINT CK_MONITOREO_CONSULTA_tipo CHECK (tipo_operacion IN ('QUERY', 'EXECUTE'))
+);

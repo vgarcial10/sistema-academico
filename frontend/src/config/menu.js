@@ -11,6 +11,8 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import PostAddIcon from '@mui/icons-material/PostAdd';
+import BackupIcon from '@mui/icons-material/Backup';
+import SpeedIcon from '@mui/icons-material/Speed';
 
 // Items de navegacion. `roles` vacio = visible para cualquier sesion.
 // Estas rutas (salvo Dashboard) son placeholders de la Fase 1.
@@ -27,6 +29,8 @@ export const menuItems = [
   { label: 'Mi Perfil', path: '/perfil', icon: PersonIcon, roles: ['Estudiante'] },
   { label: 'Asistente IA', path: '/asistente', icon: SmartToyIcon, roles: [] },
   { label: 'Registrar Usuario', path: '/usuarios/nuevo', icon: PersonAddIcon, roles: ['Administrador'] },
+  { label: 'Backup DB', path: '/backup', icon: BackupIcon, roles: ['Administrador'] },
+  { label: 'Monitoreo Consultas', path: '/monitoreo-consultas', icon: SpeedIcon, roles: ['Administrador'] },
   { label: 'Auditoria', path: '/auditoria', icon: HistoryIcon, roles: ['Administrador'] },
 ];
 

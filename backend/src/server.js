@@ -358,6 +358,54 @@ app.get('/api/auditoria', verifyToken, requireRole('Administrador'), async (req,
 });
 
 // ============================================================
+// BACKUP DB (solo administrador) + monitoreo de tiempos
+// ============================================================
+app.post('/api/admin/backup', verifyToken, requireRole('Administrador'), async (req, res) => {
+  try {
+    const { ruta_backup } = req.body || {};
+    const result = await pool.request()
+      .input('ruta_backup', sql.VarChar(400), ruta_backup || null)
+      .input('id_usuario_op', sql.Int, req.user.id_usuario)
+      .execute('sp_GenerarBackup');
+    const row = result.recordset?.[0] || { exito: 0, mensaje: 'No se obtuvo respuesta del procedimiento.' };
+    if (row.exito === 0) {
+      return res.status(400).json(row);
+    }
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/backup/monitoreo', verifyToken, requireRole('Administrador'), async (req, res) => {
+  try {
+    const r = await pool.request().query(`
+      SELECT TOP 100 m.id_monitoreo, m.proceso, m.estado, m.detalle, m.ruta_backup,
+             m.fecha_inicio, m.fecha_fin, m.duracion_ms,
+             CONCAT(u.nombre, ' ', u.apellido) AS usuario
+      FROM tbMonitoreoTiempos m
+      LEFT JOIN tbUsuario u ON u.id_usuario = m.id_usuario
+      ORDER BY m.id_monitoreo DESC`);
+    res.json(r.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/monitoreo/consultas', verifyToken, requireRole('Administrador'), async (req, res) => {
+  try {
+    const r = await pool.request().query(`
+      SELECT TOP 200 id_monitoreo, tipo_operacion, nombre_consulta, resumen_consulta,
+             fecha_inicio, fecha_fin, duracion_ms, exito, mensaje_error, fecha_registro
+      FROM tbMonitoreoConsulta
+      ORDER BY id_monitoreo DESC`);
+    res.json(r.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // IA SIMPLE (consultas en lenguaje natural sobre el estudiante)
 // ============================================================
 app.post('/api/ai/consulta', verifyToken, async (req, res) => {
