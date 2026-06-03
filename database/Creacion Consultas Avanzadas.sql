@@ -342,6 +342,7 @@ GO
 
 -- ------------------------------------------------------------
 -- AGR 5: ROLLUP — cubo OLAP por carrera > ciclo del plan > curso > estudiante
+-- Solo 4 dimensiones en ROLLUP (sin u.nombre/u.apellido; nombre vía MAX(CONCAT)).
 -- nivel: 0=total, 1=carrera, 2=ciclo, 3=curso, 4=estudiante
 -- ------------------------------------------------------------
 SELECT
@@ -353,7 +354,7 @@ SELECT
     ISNULL(c.nombre, '-- Subtotal --') AS curso,
     CASE WHEN GROUPING(e.carnet) = 0 THEN e.carnet ELSE NULL END AS carnet,
     CASE WHEN GROUPING(e.carnet) = 0
-         THEN CONCAT(u.nombre, ' ', u.apellido) ELSE NULL END AS estudiante,
+         THEN MAX(CONCAT(u.nombre, ' ', u.apellido)) ELSE NULL END AS estudiante,
     COUNT(DISTINCT asig.id_estudiante) AS estudiantes,
     CAST(AVG(n.calificacion) AS DECIMAL(5,2)) AS promedio,
     COUNT(n.id_nota) AS notas_registradas,
@@ -371,7 +372,7 @@ INNER JOIN tbCurso      c    ON c.id_curso          = s.id_curso
 INNER JOIN tbCarrera    car  ON car.id_carrera      = c.id_carrera
 INNER JOIN tbEstudiante e    ON e.id_estudiante     = asig.id_estudiante
 INNER JOIN tbUsuario    u    ON u.id_usuario        = e.id_usuario
-GROUP BY ROLLUP(car.nombre, c.ciclo_requerido, c.nombre, e.carnet, u.nombre, u.apellido)
+GROUP BY ROLLUP(car.nombre, c.ciclo_requerido, c.nombre, e.carnet)
 ORDER BY car.nombre, c.ciclo_requerido, c.nombre, e.carnet;
 GO
 

@@ -82,6 +82,92 @@ END;
 GO
 
 -- ============================================================
+-- CREAR ACTIVIDAD DE EVALUACIÓN (por sección)
+-- ============================================================
+CREATE OR ALTER PROCEDURE sp_CrearActividadEvaluacion
+    @id_seccion      INT,
+    @nombre          VARCHAR(150),
+    @tipo            VARCHAR(30),
+    @ponderacion     DECIMAL(5,2),
+    @fecha_entrega   DATE = NULL,
+    @id_usuario_op   INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        IF NOT EXISTS (SELECT 1 FROM tbSeccion WHERE id_seccion = @id_seccion AND estado = 'Abierta')
+        BEGIN
+            ROLLBACK;
+            SELECT 0 AS exito, 'La sección no existe o no está abierta' AS mensaje;
+            RETURN;
+        END
+
+        IF @tipo NOT IN ('Parcial', 'Final', 'Tarea', 'Proyecto', 'Quiz', 'Laboratorio')
+        BEGIN
+            ROLLBACK;
+            SELECT 0 AS exito, 'Tipo de actividad no válido' AS mensaje;
+            RETURN;
+        END
+
+        IF @ponderacion <= 0 OR @ponderacion > 100
+        BEGIN
+            ROLLBACK;
+            SELECT 0 AS exito, 'La ponderación debe estar entre 0.01 y 100' AS mensaje;
+            RETURN;
+        END
+
+        IF LTRIM(RTRIM(ISNULL(@nombre, ''))) = ''
+        BEGIN
+            ROLLBACK;
+            SELECT 0 AS exito, 'El nombre de la actividad es obligatorio' AS mensaje;
+            RETURN;
+        END
+
+        -- Docente solo en sus secciones; Administrador en cualquiera
+        IF NOT EXISTS (
+            SELECT 1 FROM tbUsuario u
+            INNER JOIN tbRol r ON r.id_rol = u.id_rol
+            WHERE u.id_usuario = @id_usuario_op AND r.nombre = 'Administrador'
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM tbSeccion s
+            INNER JOIN tbDocente d ON d.id_docente = s.id_docente
+            WHERE s.id_seccion = @id_seccion AND d.id_usuario = @id_usuario_op
+        )
+        BEGIN
+            ROLLBACK;
+            SELECT 0 AS exito, 'No tiene permiso para crear actividades en esta sección' AS mensaje;
+            RETURN;
+        END
+
+        DECLARE @id_nueva INT;
+        INSERT INTO tbActividadEvaluacion (id_seccion, nombre, tipo, ponderacion, fecha_entrega)
+        VALUES (@id_seccion, LTRIM(RTRIM(@nombre)), @tipo, @ponderacion, @fecha_entrega);
+        SET @id_nueva = SCOPE_IDENTITY();
+
+        INSERT INTO tbBitacoraAuditoria
+            (id_usuario, accion, tabla_afectada, id_registro_afectado, datos_nuevos)
+        VALUES
+            (@id_usuario_op, 'INSERT', 'ACTIVIDAD_EVALUACION', @id_nueva,
+             CONCAT('{"id_seccion":', @id_seccion, ',"tipo":"', @tipo, '","ponderacion":', @ponderacion, '}'));
+
+        COMMIT;
+        SELECT 1 AS exito, 'Actividad creada correctamente' AS mensaje, @id_nueva AS id_actividad;
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        INSERT INTO tbBitacoraAuditoria (id_usuario, accion, tabla_afectada, datos_nuevos)
+        VALUES (@id_usuario_op, 'ERROR', 'ACTIVIDAD_EVALUACION',
+                CONCAT('{"error":"', ERROR_MESSAGE(), '"}'));
+        SELECT 0 AS exito, ERROR_MESSAGE() AS mensaje;
+    END CATCH;
+END;
+GO
+
+-- ============================================================
 -- REGISTRAR / ACTUALIZAR NOTA
 -- ============================================================
 CREATE OR ALTER PROCEDURE sp_RegistrarNota

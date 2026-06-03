@@ -27,7 +27,7 @@ export const menuItems = [
   { label: 'Registro de Notas', path: '/notas', icon: GradeIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Asistencia', path: '/asistencia', icon: FactCheckIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Reportes', path: '/reportes', icon: AssessmentIcon, roles: ['Administrador', 'Docente', 'Reportes'] },
-  { label: 'Análisis OLAP', path: '/analisis-olap', icon: BarChartIcon, roles: ['Administrador', 'Reportes'] },
+  { label: 'Consolidado Académico UMG 2026', path: '/analisis-olap', icon: BarChartIcon, roles: ['Administrador', 'Reportes'] },
   { label: 'Mi Perfil', path: '/perfil', icon: PersonIcon, roles: ['Estudiante'] },
   { label: 'Asistente IA', path: '/asistente', icon: SmartToyIcon, roles: [] },
   { label: 'Registrar Usuario', path: '/usuarios/nuevo', icon: PersonAddIcon, roles: ['Administrador'] },
