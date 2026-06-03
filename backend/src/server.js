@@ -342,6 +342,56 @@ app.get('/api/reportes/asistencia/:id_seccion', verifyToken, async (req, res) =>
 });
 
 // ============================================================
+// ANÁLISIS OLAP (ROLLUP notas por carrera > curso > sección)
+// ============================================================
+app.get('/api/analisis/notas-consolidado', verifyToken, requireRole('Administrador', 'Reportes'), async (req, res) => {
+  try {
+    const idCarrera = req.query.id_carrera ? Number(req.query.id_carrera) : null;
+    const reqSql = pool.request();
+    if (idCarrera) {
+      reqSql.input('id_carrera', sql.Int, idCarrera);
+    }
+
+    const filtroCarrera = idCarrera
+      ? 'AND car.id_carrera = @id_carrera'
+      : '';
+
+    const r = await reqSql.query(`
+      SELECT
+          ISNULL(car.nombre, 'TOTAL GENERAL') AS carrera,
+          CASE
+              WHEN GROUPING(c.ciclo_requerido) = 1 THEN '--'
+              ELSE CAST(c.ciclo_requerido AS VARCHAR(10))
+          END AS ciclo,
+          ISNULL(c.nombre, '-- Subtotal --') AS curso,
+          CASE WHEN GROUPING(e.carnet) = 0 THEN e.carnet ELSE NULL END AS carnet,
+          CASE WHEN GROUPING(e.carnet) = 0
+               THEN CONCAT(u.nombre, ' ', u.apellido) ELSE NULL END AS estudiante,
+          COUNT(DISTINCT asig.id_estudiante) AS estudiantes,
+          CAST(AVG(n.calificacion) AS DECIMAL(5,2)) AS promedio,
+          COUNT(n.id_nota) AS notas_registradas,
+          CASE
+              WHEN GROUPING(car.nombre) = 1 THEN 0
+              WHEN GROUPING(c.ciclo_requerido) = 1 THEN 1
+              WHEN GROUPING(c.nombre) = 1 THEN 2
+              WHEN GROUPING(e.carnet) = 1 THEN 3
+              ELSE 4
+          END AS nivel
+      FROM tbNota n
+      INNER JOIN tbAsignacion asig ON asig.id_asignacion = n.id_asignacion
+      INNER JOIN tbSeccion    s    ON s.id_seccion        = asig.id_seccion
+      INNER JOIN tbCurso      c    ON c.id_curso          = s.id_curso
+      INNER JOIN tbCarrera    car  ON car.id_carrera      = c.id_carrera
+      INNER JOIN tbEstudiante e    ON e.id_estudiante     = asig.id_estudiante
+      INNER JOIN tbUsuario    u    ON u.id_usuario        = e.id_usuario
+      WHERE 1 = 1 ${filtroCarrera}
+      GROUP BY ROLLUP(car.nombre, c.ciclo_requerido, c.nombre, e.carnet, u.nombre, u.apellido)
+      ORDER BY car.nombre, c.ciclo_requerido, c.nombre, e.carnet`);
+    res.json(r.recordset);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ============================================================
 // AUDITORÍA (lectura de la bitácora)
 // ============================================================
 app.get('/api/auditoria', verifyToken, requireRole('Administrador'), async (req, res) => {

@@ -13,6 +13,7 @@ import HowToRegIcon from '@mui/icons-material/HowToReg';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import BackupIcon from '@mui/icons-material/Backup';
 import SpeedIcon from '@mui/icons-material/Speed';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 // Items de navegacion. `roles` vacio = visible para cualquier sesion.
 // Estas rutas (salvo Dashboard) son placeholders de la Fase 1.
@@ -26,6 +27,7 @@ export const menuItems = [
   { label: 'Registro de Notas', path: '/notas', icon: GradeIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Asistencia', path: '/asistencia', icon: FactCheckIcon, roles: ['Administrador', 'Docente'] },
   { label: 'Reportes', path: '/reportes', icon: AssessmentIcon, roles: ['Administrador', 'Docente', 'Reportes'] },
+  { label: 'Análisis OLAP', path: '/analisis-olap', icon: BarChartIcon, roles: ['Administrador', 'Reportes'] },
   { label: 'Mi Perfil', path: '/perfil', icon: PersonIcon, roles: ['Estudiante'] },
   { label: 'Asistente IA', path: '/asistente', icon: SmartToyIcon, roles: [] },
   { label: 'Registrar Usuario', path: '/usuarios/nuevo', icon: PersonAddIcon, roles: ['Administrador'] },
