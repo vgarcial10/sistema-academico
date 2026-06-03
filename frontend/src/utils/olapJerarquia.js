@@ -78,7 +78,15 @@ export function buildArbolCiclos(rows, carreraNombre) {
       cursoNode = { curso: rowEst.curso, meta: null, estudiantes: [] };
       cicloNode.cursos.push(cursoNode);
     }
-    cursoNode.estudiantes.push(rowEst);
+    const carnetKey = String(rowEst.carnet ?? '');
+    const idx = cursoNode.estudiantes.findIndex((e) => String(e.carnet ?? '') === carnetKey);
+    const nombreLen = String(rowEst.estudiante ?? '').trim().length;
+    if (idx < 0) {
+      cursoNode.estudiantes.push(rowEst);
+    } else {
+      const prevLen = String(cursoNode.estudiantes[idx].estudiante ?? '').trim().length;
+      if (nombreLen > prevLen) cursoNode.estudiantes[idx] = rowEst;
+    }
   });
 
   const ciclos = Array.from(ciclosMap.values()).sort(
@@ -150,6 +158,124 @@ export function aplanarArbolVisible(ciclos, expanded, keyPrefix = '') {
 
   return filas;
 }
+
+const NIVEL_LABEL = { 0: 'Total', 1: 'Carrera', 2: 'Ciclo', 3: 'Curso', 4: 'Estudiante' };
+
+/** Filas para vista plana (niveles 0–4 del cubo). */
+export function filasVistaPlana(rows, carreraNombre) {
+  let base = rows.filter((r) => r.nivel >= 0 && r.nivel <= 4);
+  if (carreraNombre && carreraNombre !== 'TODAS') {
+    base = base.filter((r) => r.nivel === 0 || r.carrera === carreraNombre);
+  }
+  return base.map((r) => ({
+    nivel_label: NIVEL_LABEL[r.nivel] ?? String(r.nivel),
+    carrera: fmt(r.carrera),
+    ciclo: r.ciclo === '--' ? '--' : (r.nivel >= 2 ? `Ciclo ${r.ciclo}` : fmt(r.ciclo)),
+    curso: fmt(r.curso),
+    estudiante: fmt(r.estudiante),
+    carnet: fmt(r.carnet),
+    estudiantes: r.estudiantes,
+    promedio: r.promedio,
+    notas_registradas: r.notas_registradas,
+  }));
+}
+
+/**
+ * Filas renderizables para tabla jerárquica (respeta expanded).
+ * tipo: carrera | ciclo | curso | estudiante
+ */
+export function buildFilasTablaJerarquica(ciclos, expanded, keyPrefix, carreraNombre, resumen) {
+  const filas = [];
+  const isExp = (key) => expanded[key] !== false;
+  const pref = keyPrefix ? `${keyPrefix}-` : '';
+  const kCarrera = keyPrefix || `carrera-${carreraNombre}`;
+
+  filas.push({
+    key: kCarrera,
+    expandKey: kCarrera,
+    canExpand: ciclos.length > 0,
+    depth: 0,
+    tipo: 'carrera',
+    dimension: carreraNombre,
+    carnet: '-',
+    estudiantes: resumen?.estudiantes,
+    promedio: resumen?.promedio,
+    notas_registradas: resumen?.notas_registradas,
+    bold: true,
+  });
+
+  if (!isExp(kCarrera)) return filas;
+
+  ciclos.forEach((cicloNode) => {
+    const kCiclo = `${pref}ciclo-${cicloNode.ciclo}`;
+    const metaC = cicloNode.meta || {};
+    filas.push({
+      key: kCiclo,
+      expandKey: kCiclo,
+      canExpand: cicloNode.cursos.length > 0,
+      depth: 1,
+      tipo: 'ciclo',
+      dimension: `Ciclo ${cicloNode.ciclo}`,
+      carnet: '-',
+      estudiantes: metaC.estudiantes,
+      promedio: metaC.promedio,
+      notas_registradas: metaC.notas_registradas,
+      bold: true,
+    });
+
+    if (!isExp(kCiclo)) return;
+
+    cicloNode.cursos.forEach((cursoNode) => {
+      const kCurso = `${kCiclo}-curso-${cursoNode.curso}`;
+      const metaCu = cursoNode.meta || {};
+      filas.push({
+        key: kCurso,
+        expandKey: kCurso,
+        canExpand: cursoNode.estudiantes.length > 0,
+        depth: 2,
+        tipo: 'curso',
+        dimension: cursoNode.curso,
+        carnet: '-',
+        estudiantes: metaCu.estudiantes,
+        promedio: metaCu.promedio,
+        notas_registradas: metaCu.notas_registradas,
+        bold: true,
+      });
+
+      if (!isExp(kCurso)) return;
+
+      cursoNode.estudiantes.forEach((est) => {
+        filas.push({
+          key: `${kCurso}-${est.carnet}`,
+          expandKey: null,
+          canExpand: false,
+          depth: 3,
+          tipo: 'estudiante',
+          dimension: est.estudiante,
+          carnet: est.carnet,
+          estudiantes: 1,
+          promedio: est.promedio,
+          notas_registradas: est.notas_registradas,
+          bold: false,
+        });
+      });
+    });
+  });
+
+  return filas;
+}
+
+export const COLUMNAS_EXPORT_PLANA = [
+  { key: 'nivel_label', label: 'Nivel' },
+  { key: 'carrera', label: 'Carrera' },
+  { key: 'ciclo', label: 'Ciclo' },
+  { key: 'curso', label: 'Curso' },
+  { key: 'estudiante', label: 'Estudiante' },
+  { key: 'carnet', label: 'Carnet' },
+  { key: 'estudiantes', label: 'Estudiantes' },
+  { key: 'promedio', label: 'Promedio' },
+  { key: 'notas_registradas', label: 'Notas registradas' },
+];
 
 export const COLUMNAS_EXPORT = [
   { key: 'nivel_label', label: 'Nivel' },

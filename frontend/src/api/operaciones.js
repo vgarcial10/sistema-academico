@@ -12,6 +12,18 @@ export async function crearCurso({ id_carrera, codigo, nombre, creditos, ciclo_r
   return data;
 }
 
+// POST /api/actividades -> sp_CrearActividadEvaluacion. Devuelve { exito, mensaje, id_actividad }.
+export async function crearActividad({ id_seccion, nombre, tipo, ponderacion, fecha_entrega }) {
+  const { data } = await api.post('/actividades', {
+    id_seccion,
+    nombre,
+    tipo,
+    ponderacion,
+    fecha_entrega: fecha_entrega || null,
+  });
+  return data;
+}
+
 // POST /api/notas -> sp_RegistrarNota. Devuelve { exito, mensaje, id_nota }.
 export async function registrarNota({ id_asignacion, id_actividad, calificacion }) {
   const { data } = await api.post('/notas', { id_asignacion, id_actividad, calificacion });

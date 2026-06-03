@@ -235,9 +235,40 @@ app.get('/api/actividades/:id_seccion', verifyToken, async (req, res) => {
   try {
     const r = await pool.request()
       .input('id_seccion', sql.Int, req.params.id_seccion)
-      .query('SELECT id_actividad, nombre, tipo, ponderacion, fecha_entrega FROM tbActividadEvaluacion WHERE id_seccion = @id_seccion');
+      .query('SELECT id_actividad, nombre, tipo, ponderacion, fecha_entrega FROM tbActividadEvaluacion WHERE id_seccion = @id_seccion ORDER BY nombre');
     res.json(r.recordset);
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/actividades', verifyToken, requireRole('Administrador', 'Docente'), async (req, res) => {
+  try {
+    const { id_seccion, nombre, tipo, ponderacion, fecha_entrega } = req.body;
+    const idSeccionNum = Number(id_seccion);
+    const ponderacionNum = Number(ponderacion);
+    const nombreNorm = String(nombre || '').trim();
+    const tipoNorm = String(tipo || '').trim();
+
+    if (!idSeccionNum || !nombreNorm || !tipoNorm || Number.isNaN(ponderacionNum)) {
+      return res.status(400).json({ error: 'Faltan datos obligatorios para crear la actividad' });
+    }
+
+    const result = await pool.request()
+      .input('id_seccion', sql.Int, idSeccionNum)
+      .input('nombre', sql.VarChar(150), nombreNorm)
+      .input('tipo', sql.VarChar(30), tipoNorm)
+      .input('ponderacion', sql.Decimal(5, 2), ponderacionNum)
+      .input('fecha_entrega', sql.Date, fecha_entrega || null)
+      .input('id_usuario_op', sql.Int, req.user.id_usuario)
+      .execute('sp_CrearActividadEvaluacion');
+
+    const row = result.recordset?.[0] || { exito: 0, mensaje: 'No se obtuvo respuesta del procedimiento.' };
+    if (row.exito === 0) {
+      return res.status(400).json(row);
+    }
+    res.status(201).json(row);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // Estudiantes inscritos (asignaciones activas) de una seccion, con su id_asignacion.
@@ -342,7 +373,7 @@ app.get('/api/reportes/asistencia/:id_seccion', verifyToken, async (req, res) =>
 });
 
 // ============================================================
-// ANÁLISIS OLAP (ROLLUP notas por carrera > curso > sección)
+// Consolidado Académico UMG 2026 (ROLLUP notas por carrera > ciclo > curso > estudiante)
 // ============================================================
 app.get('/api/analisis/notas-consolidado', verifyToken, requireRole('Administrador', 'Reportes'), async (req, res) => {
   try {
@@ -366,7 +397,7 @@ app.get('/api/analisis/notas-consolidado', verifyToken, requireRole('Administrad
           ISNULL(c.nombre, '-- Subtotal --') AS curso,
           CASE WHEN GROUPING(e.carnet) = 0 THEN e.carnet ELSE NULL END AS carnet,
           CASE WHEN GROUPING(e.carnet) = 0
-               THEN CONCAT(u.nombre, ' ', u.apellido) ELSE NULL END AS estudiante,
+               THEN MAX(CONCAT(u.nombre, ' ', u.apellido)) ELSE NULL END AS estudiante,
           COUNT(DISTINCT asig.id_estudiante) AS estudiantes,
           CAST(AVG(n.calificacion) AS DECIMAL(5,2)) AS promedio,
           COUNT(n.id_nota) AS notas_registradas,
@@ -385,7 +416,7 @@ app.get('/api/analisis/notas-consolidado', verifyToken, requireRole('Administrad
       INNER JOIN tbEstudiante e    ON e.id_estudiante     = asig.id_estudiante
       INNER JOIN tbUsuario    u    ON u.id_usuario        = e.id_usuario
       WHERE 1 = 1 ${filtroCarrera}
-      GROUP BY ROLLUP(car.nombre, c.ciclo_requerido, c.nombre, e.carnet, u.nombre, u.apellido)
+      GROUP BY ROLLUP(car.nombre, c.ciclo_requerido, c.nombre, e.carnet)
       ORDER BY car.nombre, c.ciclo_requerido, c.nombre, e.carnet`);
     res.json(r.recordset);
   } catch (err) { res.status(500).json({ error: err.message }); }
