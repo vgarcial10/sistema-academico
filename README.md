@@ -1,4 +1,4 @@
-# Sistema Académico
+# Sistema Académico UMG
 
 Proyecto académico con backend en Node.js, base de datos SQL Server, frontend y reportes.
 
